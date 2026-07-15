@@ -42,6 +42,84 @@
     "http"
   ],
   "paths": {
+    ,
+"/rounak/new/api": {
+  "post": {
+    "tags": [
+      "rounak"
+    ],
+    "summary": "Dummy custom endpoint",
+    "description": "Sample endpoint for testing.",
+    "operationId": "createDummyData",
+    "consumes": [
+      "application/json"
+    ],
+    "produces": [
+      "application/json"
+    ],
+    "parameters": [
+      {
+        "in": "body",
+        "name": "body",
+        "required": true,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "integer",
+              "example": 12345
+            },
+            "name": {
+              "type": "string",
+              "example": "Rounak Jain"
+            },
+            "email": {
+              "type": "string",
+              "example": "rounak@example.com"
+            },
+            "active": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "example": true
+            },
+            "message": {
+              "type": "string",
+              "example": "Dummy endpoint invoked successfully."
+            },
+            "requestId": {
+              "type": "string",
+              "example": "req_8f92ab31"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-07-15T12:30:45Z"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Invalid request"
+      },
+      "500": {
+        "description": "Internal server error"
+      }
+    }
+  }
+},
     "/pet/{petId}/uploadImage": {
       "post": {
         "tags": [
