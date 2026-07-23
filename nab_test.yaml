@@ -1,0 +1,275 @@
+openapi: 3.0.2
+info:
+  contact:
+    email: service.engines.mailbox@nab.com.au
+    name: Enterprise Microservices
+  description: |-
+
+    #### 1. Usecase
+    This API enables consumers to modify account blocks.
+    These are the implemented features:
+    * Create account blocks for consumer and business accounts.
+
+    #### 2. Information
+    Account Blocks: The API is designed to support multiple blocks. Depending on the ledger an account can only have one block or may have two blocks. Details about the behaviour of creating, overwriting and removing an account block is documented in the respective endpoint description.
+    #### 3. Scopes
+    * Currently this API is only available for service-to-service calls. If user context needs to be supported, then implementation of entitlement checks with AuthzHub is required.
+    ---
+  license:
+    name: Private
+  title: Manage Accounts
+  version: v1.0
+  x-appId: APP-8119
+servers:
+  - url: https://prod01.acctmgmt.intapi.ext.national.com.au/v1/acctmgmt
+    description: prod-service
+tags:
+  - name: Account blocks
+    description: APIs to create blocks on an account
+externalDocs:
+  url: https://confluence.dss.ext.national.com.au/pages/viewpage.action?pageId=657557627
+paths:
+  /accounts/{account_id}/blocks/{type}:
+    put:
+      description: |-
+        Create a block for an account. The type of the block acts as the id. Depending on the ledger, these blocks can  be created:
+
+        Available block types for consumer and business accounts:
+          * CREDIT
+          * DEBIT
+          * TRANSACTION
+
+        Supports only one block. Creating block TRANSACTION when account already has CREDIT will overwrite the CREDIT block.
+      summary: Create account block
+      tags:
+        - Account blocks
+      operationId: createAccountBlock
+      parameters:
+        - $ref: '#/components/parameters/XCorrelationId_v1.0'
+        - $ref: '#/components/parameters/accountIdParam'
+        - $ref: '#/components/parameters/blockTypeParam'
+      responses:
+        '204':
+          description: No content
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Invalid Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Unauthorised
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Resource Not Available
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Unprocessable Entity - will be returned when batch is running
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Too Many Requests
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Internal Server Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Service Unavailable
+        '504':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorProperties_v2.0'
+          description: Server Timeout
+      x-swagstar:
+        apiTarget:
+          - service
+        apiAuth: jwt
+        plugins:
+          openid-connect-v2:
+            acr:
+              - '2'
+            audience_required:
+              - nabapi
+            scopes_required:
+              - acctmgmt:accounts.blocks:update_svc
+          request-size-limiting:
+            allowed_payload_size: 1
+          route-rate-limiting:
+            second: '{{SWAGSTAR_ENV_NONSTRING_createBlock_rateSecond}}'
+            clients: '{{SWAGSTAR_ENV_NONSTRING_createBlock_rateClients}}'
+            client_limits: '{{SWAGSTAR_ENV_NONSTRING_createBlock_rateClientLimits}}'
+            default_client_limit: '{{SWAGSTAR_ENV_NONSTRING_createBlock_rateDefaultClientLimit}}'
+    x-swagstar:
+      name: Create block on account
+components:
+  securitySchemes:
+    nab_auth:
+      type: oauth2
+      flows:
+        x-all:
+          scopes:
+            acctmgmt:accounts.blocks:update_svc: scope to add and update account blocks
+  parameters:
+    accountIdParam:
+      name: account_id
+      in: path
+      description: A unique and immutable identifier used to identify the account resource. This identifier has no meaning to the account owner.
+      required: true
+      schema:
+        $ref: '#/components/schemas/AccountId_v1.0'
+    blockTypeParam:
+      name: type
+      in: path
+      description: Type of block acts as id. There can always only be one block of a specific type on a given account.
+      required: true
+      schema:
+        type: string
+    XCorrelationId_v1.0:
+      name: x-correlationid
+      in: header
+      schema:
+        $ref: '#/components/schemas/Uuid_v1.0'
+      description: A unique ID (UUID v4) for each atomic API request which SHOULD be originated by API consumers.  If performance and latency are a concern (e.g. UI in browser/mobile), this header may be disregarded, and will be injected by NAB API Gateways.  [go/nabapi](http://go/nabapi) for further details.
+      required: true
+  schemas:
+    Uuid_v1.0:
+      title: UUID
+      description: Schema to represent a UUID per RFC 4122
+      type: string
+      minLength: 36
+      maxLength: 36
+      pattern: ^[0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12}$
+      example: 377a000b-89fc-429d-a42a-82eb3d5de201
+    AccountId_v1.0:
+      title: Account Identifier
+      description: A unique and immutable identifier used to identify the account resource. This identifier has no meaning to the account owner.
+      minLength: 20
+      maxLength: 40
+      type: string
+      example: c29tZXRpbWVzdGhlcmVpc25vdGhpbmcK
+    ErrorId_v1.0:
+      title: Error Id
+      type: string
+      description: Human readable, unique name of the error
+      minLength: 1
+      example: ERROR01
+    ErrorMessage_v1.0:
+      title: Error Message
+      type: string
+      description: Message describing the error
+      minLength: 1
+      example: No account with that ID could be found
+    ErrorField_v1.0:
+      title: Error Field
+      type: string
+      minLength: 1
+      description: The field that caused the error. If the field is in the body, set this value to the JSON pointer to that field
+      example: account_id
+    ErrorFieldValue_v1.0:
+      title: Error Field Value
+      type: string
+      minLength: 1
+      description: The value of the field that caused the error
+      example: 1234-1234
+    ErrorIssue_v1.0:
+      title: Error Issue
+      type: string
+      minLength: 1
+      description: The reason for the error
+      example: not found
+    ErrorLocation_v1.0:
+      title: Error Location
+      type: string
+      minLength: 1
+      description: The location of the field that caused the error, i.e. body
+      example: path
+    ErrorDetail_v1.0:
+      title: Error Details
+      description: Additional details for the error. Mandatory for client side 4xx errors
+      properties:
+        field:
+          $ref: '#/components/schemas/ErrorField_v1.0'
+        value:
+          $ref: '#/components/schemas/ErrorFieldValue_v1.0'
+        issue:
+          $ref: '#/components/schemas/ErrorIssue_v1.0'
+        location:
+          $ref: '#/components/schemas/ErrorLocation_v1.0'
+    ErrorProperties_v2.0:
+      title: Error Properties
+      description: Error properties
+      type: object
+      properties:
+        errorId:
+          $ref: '#/components/schemas/ErrorId_v1.0'
+        message:
+          $ref: '#/components/schemas/ErrorMessage_v1.0'
+        details:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ErrorDetail_v1.0'
+      required:
+        - errorId
+        - message
+x-swagstar:
+  category: Account Mgmnt:Customer Position
+  name: Manage Accounts
+  appId: APP-8119
+  api-business-resource: accounts
+  api-namespace-shortcode: acctmgmt
+  api-consumer-segments:
+    - business
+    - corporate
+    - institutional
+    - personal
+    - whitelabel
+  api-criticality:
+    - customer-time-critical
+  api-intended-audiences:
+    - service
+  api-external: false
+  api-enterprise: true
+  api-class:
+    - business
+  api-protocol:
+    - restful
+  api-data-classification:
+    - confidential
+  api-authorisation-contexts:
+    - service-to-service
+  api-entitlements:
+    - none
+  api-architect: Carmel Warren
+  api-designer: Matt Hoppen (IDG), Rato Muhlemann (EMS)
+  api-service-owner: Elsa Sturma
+  api-repos:
+    conceptual: n/a
+    specification: https://github.aus.thenational.com/NAB-API/nab_api_specifications/tree/main/accounts/manageaccounts/apis/ManageAccounts_v1.0.yaml
+    microservice: https://github.aus.thenational.com/ATDCIB/ms_manage_accounts
